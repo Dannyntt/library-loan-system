@@ -1,0 +1,40 @@
+# Haskell build files
+*.o
+*.hi
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+
+# Cabal build directories
+dist/
+dist-*
+cabal-dev/
+.cabal-sandbox/
+cabal.sandbox.config
+
+# Stack build directory
+.stack-work/
+
+# Profiling and test artifacts
+*.prof
+*.aux
+*.hp
+*.eventlog
+.hpc
+
+# Project-specific and local config
+cabal.project.local
+cabal.project.local~
+
+# GHC environment files
+.ghc.environment.*
+
+# Temporary environments
+.hsenv
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
