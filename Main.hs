@@ -13,7 +13,7 @@ data BookLoan = BookLoan {
 fileName :: FilePath
 fileName = "loans.txt"
 
--- Load loans from the file
+-- Cargar prestamo desde el archivo
 loadLoans :: IO [BookLoan]
 loadLoans = do
     exists <- doesFileExist fileName
@@ -23,11 +23,11 @@ loadLoans = do
             return (if null content then [] else read content)
         else return []
 
--- Save loans to the file
+-- Guardar prestamo en el archivo
 saveLoans :: [BookLoan] -> IO ()
 saveLoans loans = writeFile fileName (show loans)
 
--- Register a new loan
+-- Para regsistrar el prestamo
 registerLoan :: [BookLoan] -> IO [BookLoan]
 registerLoan loans = do
     putStrLn "Enter Book ID to borrow:"
@@ -39,7 +39,7 @@ registerLoan loans = do
     putStrLn "Loan registered."
     return updated
 
--- Search for a loan by Book ID
+-- buscar prestamo por ID
 searchLoanById :: [BookLoan] -> IO ()
 searchLoanById loans = do
     putStrLn "Enter Book ID to search:"
@@ -49,7 +49,7 @@ searchLoanById loans = do
         then putStrLn "No active loan found for that ID."
         else mapM_ print results
 
--- Calculate the duration of a loan
+-- Calcular la duración del préstamo
 calculateDuration :: BookLoan -> IO ()
 calculateDuration (BookLoan bid borrow Nothing) = do
     now <- getCurrentTime
@@ -57,7 +57,7 @@ calculateDuration (BookLoan bid borrow Nothing) = do
 calculateDuration (BookLoan bid borrow (Just ret)) =
     putStrLn $ "Book " ++ bid ++ " was on loan for " ++ show (diffUTCTime ret borrow) ++ " seconds."
 
--- List all borrowed books
+-- listar libros prestados
 listBorrowedBooks :: [BookLoan] -> IO ()
 listBorrowedBooks loans = do
     let borrowed = filter (\l -> returnTime l == Nothing) loans
@@ -65,7 +65,7 @@ listBorrowedBooks loans = do
         then putStrLn "No books currently borrowed."
         else mapM_ print borrowed
 
--- Register a return
+-- registrar la devolución de un libro
 registerReturn :: [BookLoan] -> IO [BookLoan]
 registerReturn loans = do
     putStrLn "Enter Book ID to return:"
@@ -78,26 +78,70 @@ registerReturn loans = do
     putStrLn "Book returned."
     return updated
 
+-- Load books from Library.txt
+loadBooks :: FilePath -> IO [(String, String)]
+loadBooks path = do
+    exists <- doesFileExist path
+    if not exists
+        then do
+            putStrLn "Library.txt not found!"
+            return []
+        else do
+            content <- readFile path
+            let parseLine line = case break (== ',') line of
+                                    (bid, ',' : title) -> (bid, title)
+                                    _ -> ("", "")
+            return $ filter (\(bid, title) -> not (null bid) && not (null title)) $ map parseLine (lines content)
+
+-- List available books
+listAvailableBooks :: [(String, String)] -> [BookLoan] -> IO ()
+listAvailableBooks books loans = do
+    let borrowedIds = [bookId l | l <- loans, returnTime l == Nothing]
+        available = filter (\(bid, _) -> bid `notElem` borrowedIds) books
+    if null available
+        then putStrLn "No books available."
+        else do
+            putStrLn "Available books:"
+            mapM_ (\(bid, title) -> putStrLn $ bid ++ ": " ++ title) available
+
+-- List all loans with their durations
+listLoanDurations :: [BookLoan] -> IO ()
+listLoanDurations loans = do
+    now <- getCurrentTime
+    forM_ loans $ \loan ->
+        case returnTime loan of
+            Just ret -> do
+                let duration = diffUTCTime ret (borrowTime loan)
+                putStrLn $ "Book " ++ bookId loan ++ " was on loan for " ++ show duration ++ " seconds."
+            Nothing -> do
+                let duration = diffUTCTime now (borrowTime loan)
+                putStrLn $ "Book " ++ bookId loan ++ " has been on loan for " ++ show duration ++ " seconds."
+
 -- Menu
-mainMenu :: [BookLoan] -> IO ()
-mainMenu loans = do
+mainMenu :: [(String, String)] -> [BookLoan] -> IO ()
+mainMenu books loans = do
     putStrLn "\nLibrary Loan System"
     putStrLn "1. Register Loan"
     putStrLn "2. Search Loan by ID"
     putStrLn "3. List Borrowed Books"
     putStrLn "4. Register Return"
-    putStrLn "5. Exit"
+    putStrLn "5. List Available Books"
+    putStrLn "6. List Loan Durations"
+    putStrLn "7. Exit"
     putStrLn "Choose an option:"
     opt <- getLine
     case opt of
-        "1" -> registerLoan loans >>= mainMenu
-        "2" -> searchLoanById loans >> mainMenu loans
-        "3" -> listBorrowedBooks loans >> mainMenu loans
-        "4" -> registerReturn loans >>= mainMenu
-        "5" -> putStrLn "Goodbye! :)"
-        _   -> putStrLn "Invalid option. :(" >> mainMenu loans
+        "1" -> registerLoan loans >>= mainMenu books
+        "2" -> searchLoanById loans >> mainMenu books loans
+        "3" -> listBorrowedBooks loans >> mainMenu books loans
+        "4" -> registerReturn loans >>= mainMenu books
+        "5" -> listAvailableBooks books loans >> mainMenu books loans
+        "6" -> listLoanDurations loans >> mainMenu books loans
+        "7" -> putStrLn "Goodbye! :)"
+        _   -> putStrLn "Invalid option. :(" >> mainMenu books loans
 
 main :: IO ()
 main = do
+    books <- loadBooks "Library.txt"
     loans <- loadLoans
-    mainMenu loans
+    mainMenu books loans
