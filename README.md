@@ -38,7 +38,8 @@ B005,The Catcher in the Rye
 ## How to Run
 1. Clone the repository:
     ```
-    git clone [https://github.com/Dannyntt/library-loan-system.git]
+    git clone https://github.com/Dannyntt/library-loan-system.git
+
     ```
 2. Open the folder in Visual Studio Code.
 3. Make sure you have the Haskell extension installed.
