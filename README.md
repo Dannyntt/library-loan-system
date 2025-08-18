@@ -46,8 +46,4 @@ B005,The Catcher in the Rye
     ```
     runghc Main.hs
     ```
-    or
-   ```
-   runhaskell Main.hs
-   ```
 6. Follow the menu prompts in the terminal.
